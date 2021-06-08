@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# Ensure correct permissions for ossec related directories.
+chown -R ossec:ossec /var/ossec/*
+
+# symlink configuration injected by kubernetes
+rm -f /etc/postfix/main.cf
+ln -s /opt/main.cf /etc/postfix/
+
+# Stop and start of postfix to ensure all new extensions for SASL are loaded.
+/usr/sbin/postfix stop
+/usr/sbin/postfix start
+
 #
 # OSSEC container bootstrap. See the README for information of the environment
 # variables expected by this script.
@@ -11,8 +22,8 @@ DATA_DIRS="etc rules logs stats queue"
 for ossecdir in $DATA_DIRS; do
 	if [ ! -e "${DATA_PATH}/${ossecdir}" ]; then
     		echo "Installing ${ossecdir}"
-		mkdir -p ${DATA_PATH}/${ossecdir}
-    		cp -a /var/ossec/${ossecdir}-template/* ${DATA_PATH}/${ossecdir}/ 2>/dev/null
+		mkdir -p "${DATA_PATH}/${ossecdir}"
+    		cp -a /var/ossec/${ossecdir}-template/* "${DATA_PATH}/${ossecdir}/" 2>/dev/null
     		FIRST_TIME_INSTALLATION=true
   	fi
 done
@@ -20,7 +31,7 @@ done
 
 if [ ! -f ${DATA_PATH}/etc/sslmanager.key ]; then
 	openssl genrsa -out ${DATA_PATH}/etc/sslmanager.key 4096
-	openssl req -new -x509 -key ${DATA_PATH}/etc/sslmanager.key -out ${DATA_PATH}/etc/sslmanager.cert -days 3650 -subj /CN=${HOSTNAME}/
+	openssl req -new -x509 -key "${DATA_PATH}/etc/sslmanager.key" -out "${DATA_PATH}/etc/sslmanager.cert" -days 3650 -subj /CN="${HOSTNAME}"/
 fi
 
 #
@@ -32,7 +43,7 @@ chgrp ossec ${DATA_PATH}/process_list
 chmod g+rw ${DATA_PATH}/process_list
 
 #
-# If this is a first time installation, then do the  
+# If this is a first time installation, then do the
 # special configuration steps.
 #
 AUTO_ENROLLMENT_ENABLED=${AUTO_ENROLLMENT_ENABLED:-true}
@@ -40,9 +51,9 @@ AUTO_ENROLLMENT_ENABLED=${AUTO_ENROLLMENT_ENABLED:-true}
 
 function ossec_shutdown(){
   /var/ossec/bin/ossec-control stop;
-  if [ $AUTO_ENROLLMENT_ENABLED == true ]
+  if [ "${AUTO_ENROLLMENT_ENABLED}" == true ]
   then
-     kill $AUTHD_PID
+     kill "${AUTHD_PID}"
   fi
 }
 
@@ -52,15 +63,14 @@ trap "ossec_shutdown; exit" SIGINT SIGTERM
 #
 # Startup the services
 #
-chmod -R g+rw ${DATA_PATH}/logs/ ${DATA_PATH}/stats/ ${DATA_PATH}/queue/ 
+chmod -R g+rw ${DATA_PATH}/logs/ ${DATA_PATH}/stats/ ${DATA_PATH}/queue/
 
-if [ $AUTO_ENROLLMENT_ENABLED == true ]; then
+if [ "${AUTO_ENROLLMENT_ENABLED}" == true ]; then
   echo "Starting ossec-authd..."
-  /var/ossec/bin/ossec-authd -p 1515 -g ossec $AUTHD_OPTIONS >/dev/null 2>&1 &
+  /var/ossec/bin/ossec-authd -p 1515 -g ossec "${AUTHD_OPTIONS}" >/dev/null 2>&1 &
   AUTHD_PID=$!
 fi
 sleep 15 # give ossec a reasonable amount of time to start before checking status
-LAST_OK_DATE=`date +%s`
 
 # Add a dummy agent so remoted can start
 if [ ! -s /var/ossec/etc/client.keys ] ; then
@@ -68,7 +78,6 @@ if [ ! -s /var/ossec/etc/client.keys ] ; then
 fi
 
 # Start services
-/usr/sbin/postfix start
 /var/ossec/bin/ossec-control start
 
 # Return startup events to console

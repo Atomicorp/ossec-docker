@@ -1,0 +1,26 @@
+- type: serial
+  steps:
+  - type: parallel
+    steps:
+    - name: Push app To ECR - commit hash tag
+      service: app
+      type: push
+      image_name: 382093569472.dkr.ecr.us-east-1.amazonaws.com/ossec-docker
+      image_tag: "{{ .CommitID }}"
+      registry: https://382093569472.dkr.ecr.us-east-1.amazonaws.com
+      dockercfg_service: dockercfgGenerator
+    - name: Push app To ECR - branch tag
+      service: app
+      type: push
+      image_name: 382093569472.dkr.ecr.us-east-1.amazonaws.com/ossec-docker
+      image_tag: "{{ .Branch }}-latest"
+      registry: https://382093569472.dkr.ecr.us-east-1.amazonaws.com
+      dockercfg_service: dockercfgGenerator
+    - name: Push app To ECR - latest tag
+      service: app
+      type: push
+      tag: ^main$
+      image_name: 382093569472.dkr.ecr.us-east-1.amazonaws.com/ossec-docker
+      image_tag: "latest"
+      registry: https://382093569472.dkr.ecr.us-east-1.amazonaws.com
+      dockercfg_service: dockercfgGenerator
