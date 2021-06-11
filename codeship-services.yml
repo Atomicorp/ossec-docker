@@ -1,0 +1,9 @@
+app:
+  build:
+    context: .
+    dockerfile: Dockerfile
+
+dockercfgGenerator:
+  image: codeship/aws-ecr-dockercfg-generator
+  add_docker: true
+  encrypted_env_file: codeship_vars.encrypted

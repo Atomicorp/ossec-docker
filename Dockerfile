@@ -1,7 +1,7 @@
 FROM centos:latest
 MAINTAINER Support <support@atomicorp.com>
 
-
+USER root
 ADD default_agent /var/ossec/default_agent
 # copy base config
 ADD ossec.conf /var/ossec/etc/
@@ -18,7 +18,7 @@ ADD ossec-server.sh /ossec-server.sh
 
 RUN \
 	yum -y update && \
-	yum -y install wget useradd postfix && \
+	yum -y install wget postfix mailx cyrus-sasl cyrus-sasl-plain && \
 	yum clean all && \
 	cd /root; NON_INT=1 wget -q -O - https://updates.atomicorp.com/installers/atomic |sh && \
 	yum -y install ossec-hids-server && \
@@ -28,7 +28,7 @@ RUN \
   	sync && rm /init.sh
 
 #
-# Specify the data volume 
+# Specify the data volume
 #
 VOLUME ["/var/ossec/data"]
 

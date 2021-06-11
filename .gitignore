@@ -1,0 +1,9 @@
+#IDEs
+## VIM CTAGs
+tags
+tags.lock
+tags.temp
+
+#Secrets
+codeship.aes
+codeship_vars
